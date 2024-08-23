@@ -14,9 +14,11 @@
 
 import base64
 import io
+import re
 import json
 import os
 import uuid
+import numpy as np
 from typing import TYPE_CHECKING, AsyncGenerator, Dict, List, Optional, Tuple
 
 from ..data import Role as DataRole
@@ -104,7 +106,7 @@ def _process_request(
                     input_messages.append({"role": ROLE_MAPPING[message.role], "content": input_item.text})
                 else:
                     image_url = input_item.image_url.url
-                    if image_url.startswith("data:image"):  # base64 image
+                    if re.match("^data:image\/(png|jpg|jpeg|gif|bmp);base64,(.+)$", data_url):
                         image_data = base64.b64decode(image_url.split(",", maxsplit=1)[1])
                         image_path = io.BytesIO(image_data)
                     elif os.path.isfile(image_url):  # local file
@@ -112,7 +114,7 @@ def _process_request(
                     else:  # web uri
                         image_path = requests.get(image_url, stream=True).raw
 
-                    image = Image.open(image_path).convert("RGB")
+                    image = np.array(Image.open(image_path).convert("RGB"))
         else:
             input_messages.append({"role": ROLE_MAPPING[message.role], "content": message.content})
 
